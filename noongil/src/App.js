@@ -1,6 +1,7 @@
 import './App.css';
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import axios from "axios";
 
 function App() {
 
@@ -10,15 +11,17 @@ function App() {
     const commands = [
         {
             command: 'Can you read this for me',
-            callback: () => alert('You just said hi!!')
+            callback: () => takePhoto()
         },
     ]
     const { transcript } = useSpeechRecognition({ commands })
+    const [output, setOutput] = useState("");
 
     /**
      * camera feed
      */
     const videoRef = useRef(null);
+    const photoRef = useRef(null);
 
     const getVideo = () => {
         navigator.mediaDevices
@@ -33,25 +36,54 @@ function App() {
             });
     };
 
+    const takePhoto = () => {
+        let video = videoRef.current;
+        let photo = photoRef.current;
+        let ctx = photo.getContext("2d");
+        const width = 320;
+        const height = 240;
+        photo.width = width;
+        photo.height = height;
+        ctx.drawImage(video, 0, 0, width, height);
+
+        const data = photo.toDataURL("image", 1.0);
+        console.log(data)
+        const toSend = {"input" : data};
+        let config = {
+            headers: {
+                "Content-Type": "application/json",
+                'Access-Control-Allow-Origin': '*',
+            }
+        }
+        axios.post(
+            "http://localhost:4567/input",
+            toSend,
+            config
+        )
+            .then(response => {
+                setOutput(response.data["output"]);
+            })
+            .catch(function (error) {
+                console.log(error);
+            });
+
+    };
+
     useEffect(() => {
         if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
-            alert("Ups, your browser is not supported!");
+            alert("Oops, your browser is not supported!");
         }
+        SpeechRecognition.startListening({ continuous: true });
         getVideo();
     }, [videoRef]);
 
     return (
         <div>
             <h3>Noongil</h3>
-            <p>{transcript ? transcript : 'Press the button to start listening'}</p>
-
-            <button onClick={SpeechRecognition.startListening}>Start listening</button>
-            &nbsp;
-            <button onClick={SpeechRecognition.stopListening}>Stop listening</button>
-
-            <button>Take a photo</button>
-            <video ref={videoRef}/>
-            <canvas />
+            <p>{}{transcript ? transcript : 'this part is a temporary transcript of what you say'}</p>
+            <video  ref={videoRef} />
+            <canvas ref={photoRef} />
+            <div>{output}</div>
       </div>
     );
 }
