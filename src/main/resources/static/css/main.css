@@ -1,0 +1,68 @@
+input[type="number"] {
+    width: 3em;
+}
+
+p {
+    font-size: 20px;
+}
+
+h1 {
+    font-size: 40px;
+}
+
+h2 {
+    font-size: 25px;
+}
+
+p, body, h1, h2{
+    font-family: "Raleway", sans-serif;
+}
+
+div {
+    display: block;
+}
+
+.center {
+    text-align: center!important;
+}
+
+.padding {
+    padding-top: 32px!important;
+    padding-bottom: 32px!important;
+}
+
+.container {
+    padding: 0.01em 16px;
+}
+
+.result {
+    font-family: "Raleway", sans-serif;
+    font-size: 20px;
+    text-align: center;
+}
+
+.background {
+    color: #000!important;
+    background-color: #f1f1f1!important;
+}
+
+.white {
+    background-color: white!important;
+}
+
+.content {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: auto auto;
+    padding: 10px;
+}
+
+.grid-item {
+    padding: 20px;
+    text-align: center;
+}
+
