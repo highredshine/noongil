@@ -6,7 +6,6 @@ import tensorflow as tf
 
 
 class Model: 
-	# model constants
 	batchSize = 50
 	imgSize = (128, 32)
 	maxTextLen = 32
@@ -15,30 +14,22 @@ class Model:
 		self.charList = charList
 		self.mustRestore = mustRestore
 		self.snapID = 0
-
-		# Whether to use normalization over a batch or a population
 		self.is_train = tf.placeholder(tf.bool, name='is_train')
-
-		# input image batch
 		self.inputImgs = tf.placeholder(tf.float32, shape=(None, Model.imgSize[0], Model.imgSize[1]))
 
-		# setup CNN, RNN and CTC
-		self.setupCNN()
-		self.setupRNN()
-		self.setupCTC()
+		self.buildCNN()
+		self.buildRNN()
+		self.buildCTC()
 
-		# setup optimizer to train NN
 		self.batchesTrained = 0
 		self.learningRate = tf.placeholder(tf.float32, shape=[])
 		self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) 
 		with tf.control_dependencies(self.update_ops):
 			self.optimizer = tf.train.RMSPropOptimizer(self.learningRate).minimize(self.loss)
-
-		# initialize TF
-		self.sess, self.saver = self.setupTF()
+		self.sess, self.saver = self.buildTF()
 
 			
-	def setupCNN(self):
+	def buildCNN(self):
 		cnnIn4d = tf.expand_dims(input=self.inputImgs, axis=3)
 
 		# list of parameters for the layers
@@ -59,7 +50,7 @@ class Model:
 		self.cnnOut4d = pool
 
 
-	def setupRNN(self):
+	def buildRNN(self):
 		rnnIn3d = tf.squeeze(self.cnnOut4d, axis=[2])
 
 		# basic cells which is used to build RNN
@@ -81,7 +72,7 @@ class Model:
 		self.rnnOut3d = tf.squeeze(tf.nn.atrous_conv2d(value=concat, filters=kernel, rate=1, padding='SAME'), axis=[2])
 		
 
-	def setupCTC(self):
+	def buildCTC(self):
 		# BxTxC -> TxBxC
 		self.ctcIn3dTBC = tf.transpose(self.rnnOut3d, [1, 0, 2])
 		# ground truth text as sparse tensor
@@ -99,11 +90,11 @@ class Model:
 		self.decoder = tf.nn.ctc_greedy_decoder(inputs=self.ctcIn3dTBC, sequence_length=self.seqLen)
 
 
-	def setupTF(self):
+	def buildTF(self):
 		print('Python: ' + sys.version)
 		print('Tensorflow: ' + tf.__version__)
 
-		sess=tf.Session() # TF session
+		sess = tf.Session() # TF session
 
 		saver = tf.train.Saver(max_to_keep=1) # saver saves model to file
 		modelDir = '../model/'
@@ -167,17 +158,24 @@ class Model:
 	def trainBatch(self, batch):
 		numBatchElements = len(batch.imgs)
 		sparse = self.toSparse(batch.gtTexts)
-		rate = 0.01 if self.batchesTrained < 10 else (0.001 if self.batchesTrained < 10000 else 0.0001) # decay learning rate
+		if self.batchesTrained < 10:
+			rate = 0.01
+		else:
+			if self.batchesTrained < 10000:
+				rate = 0.001
+			else:
+				rate = 0.0001
+				
 		evalList = [self.optimizer, self.loss]
-		feedDict = {self.inputImgs : batch.imgs, self.gtTexts : sparse , self.seqLen : [Model.maxTextLen] * numBatchElements, self.learningRate : rate, self.is_train: True}
+		feedDict = {self.inputImgs : batch.imgs, self.gtTexts : sparse, self.seqLen : [Model.maxTextLen] * numBatchElements, self.learningRate : rate, self.is_train: True}
 		_, lossVal = self.sess.run(evalList, feedDict)
 		self.batchesTrained += 1
+
 		return lossVal
 
 
 	# feed a batch into the NN to recognize the texts
 	def inferBatch(self, batch, calcProbability=False, probabilityOfGT=False):		
-		# decode, optionally save RNN output
 		numBatchElements = len(batch.imgs)
 		evalRnnOutput = calcProbability
 		evalList = [self.decoder] + ([self.ctcIn3dTBC] if evalRnnOutput else [])
@@ -200,7 +198,6 @@ class Model:
 	
 
 	def save(self):
-		"save model to file"
 		self.snapID += 1
 		self.saver.save(self.sess, '../model/snapshot', global_step=self.snapID)
  
