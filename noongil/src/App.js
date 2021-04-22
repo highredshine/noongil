@@ -62,12 +62,19 @@ function App() {
         )
             .then(response => {
                 setOutput(response.data["output"]);
+                let msg = new SpeechSynthesisUtterance();
+                msg.text = output;
+                window.speechSynthesis.speak(msg);
             })
             .catch(function (error) {
                 console.log(error);
             });
 
     };
+
+    /**
+     * voice output
+     */
 
     useEffect(() => {
         if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
@@ -76,6 +83,8 @@ function App() {
         SpeechRecognition.startListening({ continuous: true });
         getVideo();
     }, [videoRef]);
+
+
 
     return (
         <div>

@@ -1,5 +1,6 @@
 .idea/
 .vscode/
+tr/
 .mvn-classpath
 target/
 node_modules/

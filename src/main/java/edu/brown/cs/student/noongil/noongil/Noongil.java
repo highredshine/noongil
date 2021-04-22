@@ -2,11 +2,20 @@ package edu.brown.cs.student.noongil.noongil;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+import org.apache.commons.io.FileUtils;
 import spark.Request;
 import spark.Response;
 import spark.Route;
 import spark.Spark;
 import org.json.JSONObject;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.Scanner;
 
 public class Noongil {
 
@@ -28,16 +37,32 @@ public class Noongil {
      */
     @Override
     public Object handle(Request request, Response response) throws Exception {
+      // get request body
       JSONObject obj = new JSONObject(request.body());
       String base64img = obj.getString("input").replace("data:image/png;base64,","");
-      // TODO: decode the base64 encoded img
-
-      // TODO: send the img data to python / save it as a file for python code to read
-
+      // decode the base64 encoded string to png image
+      System.out.println("detected");
+      this.saveImage(base64img);
+      // run python code
+      String command = "python tr/src/main.py --predict tr/data/image.png";
+      Runtime.getRuntime().exec(command);
       // TODO: retrieve the result output (text read from the image)
-
+      File outputTxt = new File("tr/model/recognized.txt");
+      Scanner myReader = new Scanner(outputTxt);
+      String output = myReader.nextLine();
       // TODO: send it as response
-      return GSON.toJson(ImmutableMap.of("output", "it's my face"));
+      return GSON.toJson(ImmutableMap.of("output", output));
     }
+
+    public void saveImage(String encodedString) throws IOException {
+      // create output file
+      File outputFile = new File("tr/data/image.png");
+
+      // decode the string and write to file
+      byte[] decodedBytes = Base64.getDecoder().decode(encodedString);
+      FileUtils.writeByteArrayToFile(outputFile, decodedBytes);
+    }
+
+
   }
 }
