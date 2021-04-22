@@ -20,7 +20,7 @@ class LoadData:
 	def __init__(self, filePath, batchSize, imgSize, maxTextLen):
 		"loader for dataset at given location, preprocess images and text according to parameters"
 
-		assert filePath[-1]=='/'
+		assert filePath[-1] == '/'
 
 		self.dataAugmentation = False
 		self.currIdx = 0
@@ -48,7 +48,6 @@ class LoadData:
 
 			# check if image is not empty
 			if not os.path.getsize(fileName):
-				# bad_samples.append(lineSplit[0] + '.png')
 				continue
 
 			# put sample into list
@@ -87,41 +86,33 @@ class LoadData:
 		return text
 
 	def trainSet(self):
-		"switch to randomly chosen subset of training set"
 		self.dataAugmentation = True
 		self.currIdx = 0
 		random.shuffle(self.trainSamples)
 		self.samples = self.trainSamples[:self.numTrainSamplesPerEpoch]
 
 	def validationSet(self):
-		"switch to validation set"
 		self.dataAugmentation = False
 		self.currIdx = 0
 		self.samples = self.validationSamples
 
 	def getBatchInfo(self):
-		"current batch index and overall number of batches"
 		return (self.currIdx // self.batchSize + 1, len(self.samples) // self.batchSize)
 
 	def hasNext(self):
-		"iterator"
 		return self.currIdx + self.batchSize <= len(self.samples)
 		
 	def getNext(self):
-		"iterator"
 		batchRange = range(self.currIdx, self.currIdx + self.batchSize)
 		gtTexts = [self.samples[i].gtText for i in batchRange]
 		imgs = [preprocess_data(cv2.imread(self.samples[i].filePath, cv2.IMREAD_GRAYSCALE), self.imgSize, self.dataAugmentation) for i in batchRange]
 		self.currIdx += self.batchSize
 		return Batch(gtTexts, imgs)
 
-
+# transpose and normalize
 def preprocess_data(img, imgSize, dataAugmentation=False):
-	"put img into target img of size imgSize, transpose for TF and normalize gray-values"
-
-	# there are damaged files in IAM dataset - just use black image instead
 	if img is None:
-		img = np.zeros([imgSize[1], imgSize[0]])
+		img = np.zeros([imgSize[1], imgSize[0]]) # black image if image data is damaged
 
 	# increase dataset size by applying random stretches to the images
 	if dataAugmentation:
@@ -140,11 +131,11 @@ def preprocess_data(img, imgSize, dataAugmentation=False):
 	target = np.ones([ht, wt]) * 255
 	target[0:newSize[1], 0:newSize[0]] = img
 
-	# transpose for TF
 	img = cv2.transpose(target)
+	mean, stddev = cv2.meanStdDev(img)
+	img -= mean[0][0]
 
-	# normalize
-	m, s = cv2.meanStdDev(img)
-	img -= m[0][0]
-	img /= s[0][0] if s[0][0] > 0 else img
+	if stddev[0][0] > 0:
+		img /= stddev[0][0]
+
 	return img
