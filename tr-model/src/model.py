@@ -10,9 +10,9 @@ class Model:
 	imgSize = (128, 32)
 	maxTextLen = 32
 
-	def __init__(self, charList, mustRestore=False):
+	def __init__(self, charList, restore=False):
 		self.charList = charList
-		self.mustRestore = mustRestore
+		self.restore = restore
 		self.snapID = 0
 		self.is_train = tf.placeholder(tf.bool)
 		self.inputs = tf.placeholder(tf.float32, shape=(None, Model.imgSize[0], Model.imgSize[1]))
@@ -111,7 +111,7 @@ class Model:
 		latestSnapshot = tf.train.latest_checkpoint(modelDir) # is there a saved model?
 
 		# if model must be restored (for inference), there must be a snapshot
-		if self.mustRestore and not latestSnapshot:
+		if self.restore and not latestSnapshot:
 			raise Exception('No saved model found in: ' + modelDir)
 
 		# load saved model if available
