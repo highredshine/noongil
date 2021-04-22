@@ -121,8 +121,8 @@ def main():
 
 	# infer text on test image
 	else:
-		print(open(FilePaths.fnAccuracy).read())
-		model = Model(open(FilePaths.fnCharList).read(), mustRestore=True, dump=args.dump)
+		print(open('../model/accuracy.txt').read())
+		model = Model(open('../model/charList.txt').read(), mustRestore=True, dump=args.dump)
 
 		"recognize text in image provided by file path"
 		img = preprocess(cv2.imread('../data/test.png', cv2.IMREAD_GRAYSCALE), Model.imgSize)
