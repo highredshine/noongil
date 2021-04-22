@@ -11,8 +11,7 @@ class Model:
 	imgSize = (128, 32)
 	maxTextLen = 32
 
-	def __init__(self, charList, mustRestore=False, dump=False):
-		self.dump = dump
+	def __init__(self, charList, mustRestore=False):
 		self.charList = charList
 		self.mustRestore = mustRestore
 		self.snapID = 0
@@ -180,7 +179,7 @@ class Model:
 	def inferBatch(self, batch, calcProbability=False, probabilityOfGT=False):		
 		# decode, optionally save RNN output
 		numBatchElements = len(batch.imgs)
-		evalRnnOutput = self.dump or calcProbability
+		evalRnnOutput = calcProbability
 		evalList = [self.decoder] + ([self.ctcIn3dTBC] if evalRnnOutput else [])
 		feedDict = {self.inputImgs : batch.imgs, self.seqLen : [Model.maxTextLen] * numBatchElements, self.is_train: False}
 		evalRes = self.sess.run(evalList, feedDict)

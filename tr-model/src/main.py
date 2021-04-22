@@ -99,7 +99,7 @@ def main():
 	# infer text on test image
 	else:
 		print(open('../model/accuracy.txt').read())
-		model = Model(open('../model/charList.txt').read(), mustRestore=True, dump=args.dump)
+		model = Model(open('../model/charList.txt').read(), mustRestore=True)
 		img = preprocess_data(cv2.imread('../data/test.png', cv2.IMREAD_GRAYSCALE), Model.imgSize)
 		batch = Batch(None, [img])
 		recognized, probability = model.inferBatch(batch, True)
