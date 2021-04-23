@@ -4,18 +4,6 @@ import cv2, random, os
 import numpy as np
 
 
-class Sample:
-	def __init__(self, gtText, filePath):
-		self.gtText = gtText
-		self.filePath = filePath
-
-
-class Batch:
-	def __init__(self, gtTexts, imgs):
-		self.imgs = np.stack(imgs, axis=0)
-		self.gtTexts = gtTexts
-
-
 class LoadData:
 	def __init__(self, filePath, batchSize, imageSize):
 		self.augmentData = False
@@ -39,18 +27,18 @@ class LoadData:
 			fileName = filePath + 'words/' + fileNameSplit[0] + '/' + fileNameSplit[0] + '-' + fileNameSplit[1] + '/' + lineSplit[0] + '.png'
 
 			c = 0
-			gtText = ' '.join(lineSplit[8:])
-			for i in range(len(gtText)):
-				if (not i) and (gtText[i] == gtText[i-1]):
+			ground_truth_text = ' '.join(lineSplit[8:])
+			for i in range(len(ground_truth_text)):
+				if (not i) and (ground_truth_text[i] == ground_truth_text[i-1]):
 					c += 2
 				else:
 					c += 1
 
 				if c > self.maxTextLength:
-					gtText = gtText[:i]
+					ground_truth_text = ground_truth_text[:i]
 
-			chars = chars.union(set(list(gtText)))
-			self.samples.append(Sample(gtText, fileName))
+			chars = chars.union(set(list(ground_truth_text)))
+			self.samples.append(Sample(ground_truth_text, fileName))
 
 		splitIdx = int(self.trainDataRatio * len(self.samples))
 		self.trainSamples = self.samples[:splitIdx]
@@ -59,9 +47,9 @@ class LoadData:
 		self.trainWords = []
 		self.validationWords = []
 		for train_samp in self.trainSamples:
-			self.trainWords.append(train_samp.gtText)
+			self.trainWords.append(train_samp.ground_truth_text)
 		for validation_samp in self.validationSamples:
-			self.trainWords.append(validation_samp.gtText)
+			self.trainWords.append(validation_samp.ground_truth_text)
 
 		self.numTrainSamplesPerEpoch = 25000 
 		self.trainSet()
@@ -84,10 +72,10 @@ class LoadData:
 		
 	def getNext(self):
 		batchRange = range(self.currIdx, self.currIdx + self.batchSize)
-		gtTexts = [self.samples[i].gtText for i in batchRange]
+		texts = [self.samples[i].ground_truth_text for i in batchRange]
 		imgs = [preprocess_data(cv2.imread(self.samples[i].filePath, cv2.IMREAD_GRAYSCALE), self.imageSize, self.augmentData) for i in batchRange]
 		self.currIdx += self.batchSize
-		return Batch(gtTexts, imgs)
+		return Batch(texts, imgs)
 
 	def hasNext(self):
 		return self.currIdx + self.batchSize <= len(self.samples)
@@ -109,9 +97,8 @@ def preprocess_data(img, imageSize, augmentData=False):
 	bigger = max(res2, res1)
 	reSize1 = max(min(size1, int(w / bigger)), 1)
 	reSize2 = max(min(size2, int(h / bigger)), 1)
-	img = cv2.resize(img, (reSize1, reSize2))
 	target = np.ones([size2, size1]) * 255
-	target[0:reSize2, 0:reSize1] = img
+	target[0:reSize2, 0:reSize1] = cv2.resize(img, (reSize1, reSize2))
 	img = cv2.transpose(target)
 	mean, stddev = cv2.meanStdDev(img)
 	img -= mean[0][0]
@@ -120,3 +107,14 @@ def preprocess_data(img, imageSize, augmentData=False):
 		img /= stddev[0][0]
 
 	return img
+
+# Wrapper classes for convenience
+class Batch:
+	def __init__(self, texts, imgs):
+		self.imgs = np.stack(imgs, axis=0)
+		self.texts = texts
+
+class Sample:
+	def __init__(self, ground_truth_text, filePath):
+		self.ground_truth_text = ground_truth_text
+		self.filePath = filePath

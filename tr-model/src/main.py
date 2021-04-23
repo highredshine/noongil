@@ -48,7 +48,7 @@ def test(model, processed_data):
 	
 	while processed_data.hasNext():
 		batch = processed_data.getNext()
-		texts = batch.gtTexts
+		texts = batch.textss
 		recognized, _ = model.inferBatch(batch)
 
 		for i in range(len(recognized)):
