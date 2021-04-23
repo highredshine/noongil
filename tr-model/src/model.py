@@ -64,7 +64,7 @@ class Model:
 
 	def save(self):
 		self.id += 1
-		self.saver.save(self.session, '../model/snapshot', global_step=self.id)
+		self.saver.save(self.session, '../model/interm', global_step=self.id)
 
 
 	def decoderOutputToText(self, ctcOutput, batchSize):
