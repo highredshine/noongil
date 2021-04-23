@@ -142,11 +142,10 @@ class Model:
 		sparse = self.sparseTensor(batch.gtTexts)
 		if self.batchesTrained < 10:
 			rate = 0.01
+		elif self.batchesTrained < 10000:
+			rate = 0.001
 		else:
-			if self.batchesTrained < 10000:
-				rate = 0.001
-			else:
-				rate = 0.0001
+			rate = 0.0001
 				
 		evalList = [self.optimizer, self.loss]
 		feedDict = {self.inputs : batch.imgs, self.gtTexts : sparse, self.seqLen : [32] * numBatchElements, self.learningRate : rate, self.training: True}
