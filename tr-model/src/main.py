@@ -70,7 +70,7 @@ def main():
 	parser.add_argument('--test', action='store_true')
 	a = parser.parse_args()
 
-	processed_data = LoadData('../data/', Model.batchSize, Model.imgSize, Model.maxTextLen)
+	processed_data = LoadData(filePath='../data/', batchSize=50, imageSize=(128, 32))
 	open('../model/charList.txt', 'w').write(str().join(processed_data.charList))
 	open('../data/corpus.txt', 'w').write(str(' ').join(processed_data.trainWords + processed_data.validationWords))
 	if a.train:

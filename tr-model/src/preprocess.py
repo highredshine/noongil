@@ -17,13 +17,14 @@ class Batch:
 
 
 class LoadData:
-	def __init__(self, filePath, batchSize, imgSize, maxTextLen):
-		self.dataAugmentation = False
+	def __init__(self, filePath, batchSize, imageSize):
+		self.augmentData = False
 		self.currIdx = 0
 		self.batchSize = batchSize
-		self.imgSize = imgSize
+		self.imageSize = imageSize
 		self.samples = []
 		self.trainDataRatio = 0.95
+		self.maxTextLength = 32
 	
 		chars = set()
 		file_list = open(filePath + 'words.txt')
@@ -32,9 +33,8 @@ class LoadData:
 			if not line or line[0]=='#':
 				continue
 			
-			lineSplit = line.strip().split(' ')
-			
 			# format filename
+			lineSplit = line.strip().split(' ')
 			fileNameSplit = lineSplit[0].split('-')
 			fileName = filePath + 'words/' + fileNameSplit[0] + '/' + fileNameSplit[0] + '-' + fileNameSplit[1] + '/' + lineSplit[0] + '.png'
 
@@ -46,7 +46,7 @@ class LoadData:
 				else:
 					c += 1
 
-				if c > maxTextLen:
+				if c > self.maxTextLength:
 					gtText = gtText[:i]
 
 			chars = chars.union(set(list(gtText)))
@@ -56,63 +56,62 @@ class LoadData:
 		self.trainSamples = self.samples[:splitIdx]
 		self.validationSamples = self.samples[splitIdx:]
 
-		self.trainWords = [x.gtText for x in self.trainSamples]
-		self.validationWords = [x.gtText for x in self.validationSamples]
+		self.trainWords = []
+		self.validationWords = []
+		for train_samp in self.trainSamples:
+			self.trainWords.append(train_samp.gtText)
+		for validation_samp in self.validationSamples:
+			self.trainWords.append(validation_samp.gtText)
 
-		# number of randomly chosen samples / epoch
 		self.numTrainSamplesPerEpoch = 25000 
-		
 		self.trainSet()
-
-		# list of all chars in dataset
-		self.charList = sorted(list(chars))
+		chars = list(chars)
+		self.charList = sorted(chars)
 
 	def trainSet(self):
-		self.dataAugmentation = True
+		self.augmentData = True
 		self.currIdx = 0
 		random.shuffle(self.trainSamples)
 		self.samples = self.trainSamples[:self.numTrainSamplesPerEpoch]
 
 	def validationSet(self):
-		self.dataAugmentation = False
+		self.augmentData = False
 		self.currIdx = 0
 		self.samples = self.validationSamples
 
 	def getBatchInfo(self):
 		return self.currIdx // self.batchSize + 1, len(self.samples) // self.batchSize
-
-	def hasNext(self):
-		return self.currIdx + self.batchSize <= len(self.samples)
 		
 	def getNext(self):
 		batchRange = range(self.currIdx, self.currIdx + self.batchSize)
 		gtTexts = [self.samples[i].gtText for i in batchRange]
-		imgs = [preprocess_data(cv2.imread(self.samples[i].filePath, cv2.IMREAD_GRAYSCALE), self.imgSize, self.dataAugmentation) for i in batchRange]
+		imgs = [preprocess_data(cv2.imread(self.samples[i].filePath, cv2.IMREAD_GRAYSCALE), self.imageSize, self.augmentData) for i in batchRange]
 		self.currIdx += self.batchSize
 		return Batch(gtTexts, imgs)
 
+	def hasNext(self):
+		return self.currIdx + self.batchSize <= len(self.samples)
+
 # transpose and normalize
-def preprocess_data(img, imgSize, dataAugmentation=False):
+def preprocess_data(img, imageSize, augmentData=False):
 	if img is None:
-		img = np.zeros([imgSize[1], imgSize[0]]) # black image if image data is damaged
+		img = np.zeros([imageSize[1], imageSize[0]]) # black image if image data is damaged
 
-	# randomly stretch images
-	if dataAugmentation:
-		stretch = random.random() - 0.5 # -0.5 .. +0.5
-		wStretched = max(int(img.shape[1] * (1 + stretch)), 1) # random width, but at least 1
-		img = cv2.resize(img, (wStretched, img.shape[0])) # stretch horizontally by factor 0.5 .. 1.5
+	if augmentData:
+		stretch = random.random() - 0.5
+		stretched = max(int(32 * (1 + stretch)), 1)
+		img = cv2.resize(img, (stretched, 128))
 	
-	# create target image and copy sample image into it
-	wt, ht = imgSize
+	size1, size2 = imageSize
 	h, w = img.shape
-	fx = w / wt
-	fy = h / ht
-	f = max(fx, fy)
-	newSize = (max(min(wt, int(w / f)), 1), max(min(ht, int(h / f)), 1))
-	img = cv2.resize(img, newSize)
-	target = np.ones([ht, wt]) * 255
-	target[0:newSize[1], 0:newSize[0]] = img
-
+	res1 = w / size1
+	res2 = h / size2
+	bigger = max(res2, res1)
+	reSize1 = max(min(size1, int(w / bigger)), 1)
+	reSize2 = max(min(size2, int(h / bigger)), 1)
+	img = cv2.resize(img, (reSize1, reSize2))
+	target = np.ones([size2, size1]) * 255
+	target[0:reSize2, 0:reSize1] = img
 	img = cv2.transpose(target)
 	mean, stddev = cv2.meanStdDev(img)
 	img -= mean[0][0]
